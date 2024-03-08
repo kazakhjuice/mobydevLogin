@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"mobydevLogin/internal/helpers"
@@ -24,8 +25,16 @@ var jwtSecret = []byte("your-secret-key") // TODO: keep in env
 
 func (h *dbHandler) Login(w http.ResponseWriter, r *http.Request, db *sql.DB, log *slog.Logger) {
 
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+	var request LoginRequest
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		helpers.ServeError(err, w, "Invalid JSON format", log, http.StatusBadRequest)
+		return
+	}
+
+	email := request.Email
+	password := request.Password
 
 	var storedPassword string
 	var isAdmin bool
@@ -35,7 +44,7 @@ func (h *dbHandler) Login(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 		return
 	}
 
-	err := db.QueryRow("SELECT password, isAdmin FROM users WHERE email=?", email).Scan(&storedPassword, &isAdmin)
+	err = db.QueryRow("SELECT password, isAdmin FROM users WHERE email=?", email).Scan(&storedPassword, &isAdmin)
 	if err == sql.ErrNoRows {
 		helpers.ServeError(err, w, "user doesn't exist", log, http.StatusBadRequest)
 		return
@@ -66,9 +75,17 @@ func (h *dbHandler) Login(w http.ResponseWriter, r *http.Request, db *sql.DB, lo
 
 func (h *dbHandler) Register(w http.ResponseWriter, r *http.Request, db *sql.DB, log *slog.Logger) {
 
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-	verPassword := r.FormValue("verPassword")
+	var request RegisterRequest
+
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		helpers.ServeError(err, w, "Invalid JSON format", log, http.StatusBadRequest)
+		return
+	}
+
+	email := request.Email
+	password := request.Password
+	verPassword := request.VerPassword
 
 	// TODO: use context for multple errors return
 

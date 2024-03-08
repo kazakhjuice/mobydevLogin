@@ -4,3 +4,4 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     isAdmin BOOL DEFAULT 0
 );
+
